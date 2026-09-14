@@ -389,6 +389,30 @@ For the complete developer integration checklist, Meta setup sequence,
 webhook configuration, E.164 phone rules, welcome-message ordering, and
 troubleshooting, read [WHATSAPP_INTEGRATION.md](./WHATSAPP_INTEGRATION.md).
 
+## Admin console
+
+The protected operations console is available at `http://localhost:3000/admin/login`.
+It provides:
+
+- Account directory with active/suspended state
+- Safe account creation, suspension, activation, and deletion
+- User, journey, and notification totals
+- Delivery health totals
+- WhatsApp Cloud API and Telegram readiness status
+- Mock/live provider visibility
+
+For local development, configure the administrator through environment variables:
+
+```dotenv
+ADMIN_USERNAME=mohsintaj
+ADMIN_PASSWORD=<replace-with-a-development-password>
+```
+
+The first successful administrator login bootstraps the admin account in the
+database. Run the latest Alembic migration before starting the API. Do not use
+the development credentials in production; replace them with a secret-managed
+password and rotate them before sharing the environment.
+
 1. Create a Meta App with the WhatsApp product enabled.
 2. Get a temporary or permanent access token, the phone number ID, and the
    WhatsApp Business Account ID.

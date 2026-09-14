@@ -71,13 +71,12 @@ async def trigger_sos(
         raise HTTPException(status_code=400, detail="A live location or a previously ingested location is required")
 
     members = list((await db.execute(select(FamilyMember).where(FamilyMember.user_id == current_user.id, FamilyMember.is_active == True))).scalars().all())  # noqa: E712
-    history = "\n".join(
-        f"- {point.recorded_at.isoformat()}: https://maps.google.com/?q={point.latitude},{point.longitude}"
-        for point in locations
-    )
     message = f"{payload.message}\nLive location: https://maps.google.com/?q={live.latitude},{live.longitude}"
-    if history:
-        message += f"\nLast {len(locations)} locations:\n{history}"
+    if locations:
+        message += (
+            f"\n{len(locations)} recent location points are available in the "
+            "SafeReach dashboard."
+        )
     for member in members:
         notification = await notification_service.create_notification_record(db, current_user.id, member.id, journey.id if journey else None, message, "emergency")
         await notification_service.dispatch_notification(db, notification, member.phone_number)

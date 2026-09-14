@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, family, journeys, locations, notifications, places, safety, schedules, test, users, webhooks
+from app.api.routes import admin, auth, family, journeys, locations, notifications, places, safety, schedules, test, users, webhooks
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
 
@@ -57,6 +57,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 
 app.include_router(auth.router)
+app.include_router(admin.router)
 app.include_router(users.router)
 app.include_router(family.router)
 app.include_router(places.router)

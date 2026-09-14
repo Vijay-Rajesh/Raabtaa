@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-me"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ADMIN_USERNAME: Optional[str] = None
+    ADMIN_PASSWORD: Optional[str] = None
 
     # Gemini (used as the LLM backing the OpenAI Agents SDK, via Gemini's
     # OpenAI-compatible endpoint -- see app/agents/model_provider.py)
