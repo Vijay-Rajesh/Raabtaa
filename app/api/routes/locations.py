@@ -15,6 +15,9 @@ from app.models.safe_place import SafePlace
 from app.models.user import User
 from app.schemas.location import GeofenceEventRead, LocationCreate, LocationEventRead, LocationIngestResponse
 from app.services import arrival_service, geofence_service, journey_service
+from app.services.smart_status_service import SmartStatus, evaluate_journey_status
+from app.services import notification_service
+from app.models.notification import Notification
 
 router = APIRouter(prefix="/api/v1/locations", tags=["Locations"])
 
@@ -136,6 +139,34 @@ async def ingest_location(
             )
 
     await db.refresh(location)
+
+    # Evaluate safety after the point is durable. Alert contacts only when a
+    # late/deviation alert has not already been sent during this journey window.
+    active_journey = await journey_service.get_active_journey(db, current_user.id)
+    safety_status = await evaluate_journey_status(db, active_journey) if active_journey else None
+    if safety_status and safety_status.status in (SmartStatus.LATE, SmartStatus.DEVIATED):
+        recent = await db.scalar(
+            select(Notification).where(
+                Notification.user_id == current_user.id,
+                Notification.journey_id == active_journey.id,
+                Notification.notification_type == ("delay" if safety_status.status == SmartStatus.LATE else "deviation"),
+            ).order_by(Notification.created_at.desc()).limit(1)
+        )
+        if recent is None:
+            members = list((await db.execute(select(FamilyMember).where(
+                FamilyMember.user_id == current_user.id,
+                FamilyMember.is_active == True,  # noqa: E712
+            ))).scalars().all())
+            message = (
+                f"SafeReach alert: journey is {safety_status.status.replace('_', ' ')}. "
+                f"{safety_status.reason}."
+            )
+            for member in members:
+                alert = await notification_service.create_notification_record(
+                    db, current_user.id, member.id, active_journey.id, message,
+                    "delay" if safety_status.status == SmartStatus.LATE else "deviation",
+                )
+                await notification_service.dispatch_notification(db, alert, member.phone_number)
 
     return LocationIngestResponse(
         location=location,

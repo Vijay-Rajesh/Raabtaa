@@ -11,6 +11,8 @@ from app.models.location_event import LocationEvent
 from app.models.user import User
 from app.schemas.journey import JourneyRead
 from app.schemas.location import LocationEventRead
+from app.schemas.safety import SmartStatusRead
+from app.services.smart_status_service import evaluate_journey_status
 
 router = APIRouter(prefix="/api/v1/journeys", tags=["Journeys"])
 
@@ -55,3 +57,15 @@ async def replay_journey(
         location_query.order_by(LocationEvent.recorded_at.asc()).limit(max_points)
     )
     return list(result.scalars().all())
+
+
+@router.get("/{journey_id}/status", response_model=SmartStatusRead)
+async def journey_status(
+    journey_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SmartStatusRead:
+    journey = await db.scalar(select(Journey).where(Journey.id == journey_id, Journey.user_id == current_user.id))
+    if journey is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Journey not found")
+    return SmartStatusRead.model_validate(await evaluate_journey_status(db, journey))

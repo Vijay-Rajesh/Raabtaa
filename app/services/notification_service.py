@@ -16,6 +16,7 @@ from app.services.whatsapp_service import WhatsAppSendResult, send_message
 from app.utils.time import utcnow
 
 logger = get_logger(__name__)
+WELCOME_MESSAGE_TYPE = "welcome"
 
 
 @dataclass
@@ -97,12 +98,54 @@ async def create_notification_record(
     return notification
 
 
+async def ensure_welcome_message(
+    db: AsyncSession,
+    member: FamilyMember,
+    owner_name: Optional[str] = None,
+) -> WhatsAppSendResult:
+    """Attempt the one-time WhatsApp welcome before other alerts are delivered."""
+    if getattr(member, "welcome_message_sent_at", None) is not None:
+        return WhatsAppSendResult(True, None, "sent", None)
+
+    recipient_phone = getattr(member, "phone_number", None)
+    if not recipient_phone:
+        return WhatsAppSendResult(False, None, "failed", "Family member has no phone number.")
+
+    member_name = getattr(member, "name", "there")
+    workspace_owner = owner_name or "your family"
+    welcome = await send_message(
+        recipient_phone,
+        (
+            f"Welcome to SafeReach, {member_name}! "
+            f"You are now connected to {workspace_owner}'s family safety workspace."
+        ),
+    )
+    if welcome.success:
+        member.welcome_message_sent_at = utcnow()
+        await db.commit()
+        logger.info(
+            "Welcome WhatsApp sent before follow-up alerts for member=%s",
+            getattr(member, "id", "unknown"),
+        )
+    else:
+        logger.warning(
+            "Welcome WhatsApp failed before follow-up alert for member=%s: %s",
+            getattr(member, "id", "unknown"),
+            welcome.error_message,
+        )
+    return welcome
+
+
 async def dispatch_notification(
     db: AsyncSession,
     notification: Notification,
     recipient_phone: str,
 ) -> NotificationDeliveryResult:
     """Try WhatsApp first and fall back to Telegram when WhatsApp fails."""
+    member = await db.get(FamilyMember, notification.family_member_id)
+    if member is not None and getattr(notification, "notification_type", None) != WELCOME_MESSAGE_TYPE:
+        await ensure_welcome_message(db, member)
+
     result: WhatsAppSendResult = await send_message(recipient_phone, notification.message)
 
     whatsapp_message = WhatsAppMessage(
@@ -123,7 +166,6 @@ async def dispatch_notification(
             provider_message_id=result.whatsapp_message_id, error_message=None,
         )
     else:
-        member = await db.get(FamilyMember, notification.family_member_id)
         telegram_result: Optional[TelegramSendResult] = None
         if member and member.telegram_enabled and member.telegram_chat_id:
             telegram_result = await send_telegram_message(member.telegram_chat_id, notification.message)

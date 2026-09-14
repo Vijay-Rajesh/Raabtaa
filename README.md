@@ -385,6 +385,10 @@ needed — just the standard `openai` Python client pointed at a different
 
 ## 10. Meta WhatsApp Cloud API Setup
 
+For the complete developer integration checklist, Meta setup sequence,
+webhook configuration, E.164 phone rules, welcome-message ordering, and
+troubleshooting, read [WHATSAPP_INTEGRATION.md](./WHATSAPP_INTEGRATION.md).
+
 1. Create a Meta App with the WhatsApp product enabled.
 2. Get a temporary or permanent access token, the phone number ID, and the
    WhatsApp Business Account ID.

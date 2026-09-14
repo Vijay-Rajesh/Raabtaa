@@ -74,3 +74,48 @@ async def test_failed_whatsapp_stays_failed_without_telegram_chat_id():
     assert result.channel == "whatsapp"
     assert result.status == "failed"
     assert notification.status == "failed"
+
+
+@pytest.mark.asyncio
+async def test_welcome_is_sent_before_follow_up_notification():
+    db = MagicMock()
+    member = SimpleNamespace(
+        id="family-member-id",
+        name="Sara",
+        phone_number="+923001234567",
+        welcome_message_sent_at=None,
+        telegram_enabled=False,
+        telegram_chat_id=None,
+    )
+    db.get = AsyncMock(return_value=member)
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+    notification = SimpleNamespace(
+        id="notification-id",
+        family_member_id="family-member-id",
+        notification_type="emergency",
+        message="SOS: Please check the live location.",
+        status="pending",
+        channel="whatsapp",
+        sent_at=None,
+    )
+    whatsapp_sender = AsyncMock(
+        side_effect=[
+            WhatsAppSendResult(True, "welcome-id", "sent", None),
+            WhatsAppSendResult(True, "sos-id", "sent", None),
+        ]
+    )
+
+    original_whatsapp = notification_service.send_message
+    notification_service.send_message = whatsapp_sender
+    try:
+        result = await notification_service.dispatch_notification(
+            db, notification, member.phone_number
+        )
+    finally:
+        notification_service.send_message = original_whatsapp
+
+    assert result.status == "sent"
+    assert member.welcome_message_sent_at is not None
+    assert whatsapp_sender.await_args_list[0].args[1].startswith("Welcome to SafeReach")
+    assert whatsapp_sender.await_args_list[1].args[1] == notification.message

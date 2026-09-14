@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, family, journeys, locations, notifications, places, schedules, test, users, webhooks
+from app.api.routes import auth, family, journeys, locations, notifications, places, safety, schedules, test, users, webhooks
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
 
@@ -65,6 +65,7 @@ app.include_router(journeys.router)
 app.include_router(notifications.router)
 app.include_router(schedules.router)
 app.include_router(webhooks.router)
+app.include_router(safety.router)
 
 if not settings.is_production:
     app.include_router(test.router)
