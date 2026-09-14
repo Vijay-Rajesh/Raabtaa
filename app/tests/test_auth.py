@@ -177,7 +177,7 @@ async def test_user_can_change_password(app_client, registered_user):
     assert response.status_code == 204
     login = await app_client.post(
         "/api/v1/auth/login",
-        json={"email": registered_user["email"], "password": "NewSecret456"},
+        json={"email": registered_user["user"]["email"], "password": "NewSecret456"},
     )
     assert login.status_code == 200
 

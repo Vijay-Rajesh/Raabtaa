@@ -1,15 +1,15 @@
-# Raabta — Automatic Safe Arrival Agent (Backend MVP)
+# Raabta / SafeReach — Family Safety Tracking System
 
-A backend-only MVP for an application that automatically detects when a user
-reaches a configured destination (Home, School, College, Office, University,
-or a custom safe place) and sends an automatic WhatsApp notification to a
-chosen family member, e.g.:
+A full-stack family safety system with a Next.js dashboard and FastAPI backend.
+It automatically detects when a user reaches a configured destination (Home,
+School, College, Office, University, or a custom safe place) and sends an
+automatic WhatsApp notification to a chosen family member, e.g.:
 
 > ✅ Ali has safely arrived at College at 8:20 AM.
 
-This repository is **backend only**. It is designed to be consumed later by
-a React Native mobile app, but everything can be fully tested today via
-**Swagger UI** or **Postman**.
+The repository contains the `Raabtaa` backend and `raabta-frontend` dashboard.
+The backend can still be tested independently through **Swagger UI** or
+**Postman**.
 
 ---
 
