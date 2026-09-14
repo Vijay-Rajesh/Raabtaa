@@ -1,5 +1,6 @@
 import enum
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, ForeignKey, String
@@ -37,6 +38,7 @@ class FamilyMember(UUIDPKMixin, Base):
     telegram_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     tracking_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    welcome_message_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     user: Mapped["User"] = relationship(back_populates="family_members")

@@ -9,6 +9,8 @@ from app.database.session import get_db
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.user import UserRead
+from app.services.whatsapp_service import send_message
+from app.utils.time import utcnow
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 logger = get_logger(__name__)
@@ -29,6 +31,15 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    welcome = await send_message(
+        user.phone_number,
+        f"Welcome to SafeReach, {user.full_name}! Your family safety workspace is ready.",
+    )
+    if welcome.success:
+        user.welcome_message_sent_at = utcnow()
+        await db.commit()
+    else:
+        logger.warning("Welcome WhatsApp failed for user %s: %s", user.id, welcome.error_message)
     logger.info("New user registered: %s", user.id)
     return user
 

@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, String
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -23,6 +25,7 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     phone_number: Mapped[str] = mapped_column(String(32), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    welcome_message_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     family_members: Mapped[list["FamilyMember"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

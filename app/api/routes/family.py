@@ -6,12 +6,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.logging import get_logger
 from app.database.session import get_db
 from app.models.family_member import FamilyMember
 from app.models.user import User
 from app.schemas.family_member import FamilyMemberCreate, FamilyMemberRead, FamilyMemberUpdate
+from app.services.whatsapp_service import send_message
+from app.utils.time import utcnow
 
 router = APIRouter(prefix="/api/v1/family", tags=["Family Members"])
+logger = get_logger(__name__)
 
 
 @router.post("/{family_member_id}/tracking-link")
@@ -58,6 +62,16 @@ async def create_family_member(
     db.add(member)
     await db.commit()
     await db.refresh(member)
+    if member.whatsapp_enabled and member.welcome_message_sent_at is None:
+        welcome = await send_message(
+            member.phone_number,
+            f"Welcome to SafeReach, {member.name}! You are now connected to {current_user.full_name}'s family safety workspace.",
+        )
+        if welcome.success:
+            member.welcome_message_sent_at = utcnow()
+            await db.commit()
+        else:
+            logger.warning("Welcome WhatsApp failed for family member %s: %s", member.id, welcome.error_message)
     return member
 
 
